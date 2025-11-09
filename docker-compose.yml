@@ -1,0 +1,43 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:15
+    container_name: thought_db
+    environment:
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: agentpass
+      POSTGRES_DB: salesdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./app/db_init.sql:/docker-entrypoint-initdb.d/db_init.sql
+
+  agent:
+    build: .
+    container_name: thought_agent
+    command: python -m app.test_run_agent
+    environment:
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      GOOGLE_CHAT_MODEL: gemini-2.5-flash
+      DATABASE_URL: postgresql://agent:agentpass@db:5432/salesdb
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python -m streamlit run app/frontend/chatbot.py --server.port=8501 --server.address=0.0.0.0
+    environment:
+      - PYTHONUNBUFFERED=1
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_CHAT_MODEL=gemini-2.5-flash
+      - DATABASE_URL=postgresql://agent:agentpass@db:5432/salesdb
+    ports:
+      - "8501:8501"
+    depends_on:
+      - db
+
+networks:
+  thoughtnet:
+    driver: bridge

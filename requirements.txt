@@ -1,0 +1,4 @@
+google-generativeai
+asyncio
+psycopg2-binary
+streamlit==1.51.0
